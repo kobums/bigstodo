@@ -6,7 +6,6 @@ import SignupPage from './pages/SignupPage';
 import BoardListPage from './pages/BoardListPage';
 import BoardDetailPage from './pages/BoardDetailPage';
 import BoardFormPage from './pages/BoardFormPage';
-import './App.css';
 
 function App() {
   return (

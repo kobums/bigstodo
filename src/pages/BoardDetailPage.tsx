@@ -1,7 +1,8 @@
 import { useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getBoard, deleteBoard, getCategories } from '../api/boards';
 import { useBoardStore } from '../stores/boardStore';
+import { BoardDetail } from '../components/board/BoardDetail';
 
 export default function BoardDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,51 +42,15 @@ export default function BoardDetailPage() {
     }
   };
 
-  if (loading) return <div className="loading">로딩 중...</div>;
-  if (!currentBoard) return <div className="empty">게시글을 찾을 수 없습니다.</div>;
-
   const getCategoryLabel = (key: string) => categories[key] || key;
 
-  const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
-    return d.toLocaleString('ko-KR', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit',
-    });
-  };
+  if (loading || !currentBoard) return <div style={{ textAlign: 'center', padding: '5rem 0', color: '#64748b' }}>로딩 중...</div>;
 
   return (
-    <div className="board-detail-page">
-      <article className="board-detail">
-        <div className="board-detail-header">
-          <span className={`badge badge-${currentBoard.boardCategory.toLowerCase()}`}>
-            {getCategoryLabel(currentBoard.boardCategory)}
-          </span>
-          <h2 className="board-detail-title">{currentBoard.title}</h2>
-          <time className="board-detail-date">{formatDate(currentBoard.createdAt)}</time>
-        </div>
-
-        {currentBoard.imageUrl && (
-          <div className="board-detail-image">
-            <img
-              src={`https://front-mission.bigs.or.kr${currentBoard.imageUrl}`}
-              alt="첨부 이미지"
-            />
-          </div>
-        )}
-
-        <div className="board-detail-content">
-          {currentBoard.content}
-        </div>
-
-        <div className="board-detail-actions">
-          <Link to="/" className="btn btn-outline">목록</Link>
-          <div className="board-detail-actions-right">
-            <Link to={`/boards/${currentBoard.id}/edit`} className="btn btn-secondary">수정</Link>
-            <button onClick={handleDelete} className="btn btn-danger">삭제</button>
-          </div>
-        </div>
-      </article>
-    </div>
+    <BoardDetail
+      board={currentBoard}
+      getCategoryLabel={getCategoryLabel}
+      onDelete={handleDelete}
+    />
   );
 }

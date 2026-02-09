@@ -1,7 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { createBoard, updateBoard, getBoard, getCategories } from '../api/boards';
 import { useBoardStore } from '../stores/boardStore';
+import { BoardForm } from '../components/board/BoardForm';
+import { colors } from '../styles/constants';
 
 export default function BoardFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -9,14 +11,13 @@ export default function BoardFormPage() {
   const isEdit = !!id;
 
   const { categories, setCategories } = useBoardStore();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('');
-  const [file, setFile] = useState<File | undefined>(undefined);
-  const [existingImage, setExistingImage] = useState<string | null>(null);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [initialData, setInitialData] = useState<{
+    title: string;
+    content: string;
+    category: string;
+    imageUrl: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (Object.keys(categories).length === 0) {
@@ -25,116 +26,48 @@ export default function BoardFormPage() {
   }, [categories, setCategories]);
 
   useEffect(() => {
-    if (!isEdit || !id) return;
+    if (!isEdit || !id) {
+       setInitialData({ title: '', content: '', category: '', imageUrl: null });
+       return;
+    }
+    
+    setLoading(true);
     getBoard(Number(id)).then((board) => {
-      setTitle(board.title);
-      setContent(board.content);
-      setCategory(board.boardCategory);
-      setExistingImage(board.imageUrl);
-    }).catch(() => navigate('/'));
+      setInitialData({
+        title: board.title,
+        content: board.content,
+        category: board.boardCategory,
+        imageUrl: board.imageUrl,
+      });
+    }).catch(() => navigate('/'))
+      .finally(() => setLoading(false));
   }, [id, isEdit, navigate]);
 
-  useEffect(() => {
-    if (!category && Object.keys(categories).length > 0) {
-      setCategory(Object.keys(categories)[0]);
-    }
-  }, [categories, category]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!title.trim() || !content.trim() || !category) {
-      setError('제목, 내용, 카테고리를 모두 입력해주세요.');
-      return;
-    }
-
+  const handleSubmit = async (data: { title: string; content: string; category: string }, file?: File) => {
     setLoading(true);
     try {
-      const data = { title: title.trim(), content: content.trim(), category };
       if (isEdit) {
         await updateBoard(Number(id), data, file);
-        navigate(`/boards/${id}`);
+        navigate(`/boards/${id}`, { replace: true });
       } else {
         const result = await createBoard(data, file);
-        navigate(`/boards/${result.id}`);
+        navigate(`/boards/${result.id}`, { replace: true });
       }
-    } catch {
-      setError(isEdit ? '수정에 실패했습니다.' : '등록에 실패했습니다.');
     } finally {
       setLoading(false);
     }
   };
 
+  if (loading && !initialData) return <div style={{ textAlign: 'center', padding: '5rem 0', color: colors.text.tertiary }}>로딩 중...</div>;
+  if (!initialData && isEdit) return <div style={{ textAlign: 'center', padding: '5rem 0', color: colors.text.tertiary }}>데이터를 불러오는 중...</div>;
+
   return (
-    <div className="board-form-page">
-      <h2>{isEdit ? '게시글 수정' : '게시글 작성'}</h2>
-      <form onSubmit={handleSubmit} className="board-form">
-        {error && <p className="auth-error">{error}</p>}
-
-        <div className="form-field">
-          <label htmlFor="category">카테고리</label>
-          <select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            {Object.entries(categories).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="title">제목</label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="제목을 입력하세요"
-          />
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="content">내용</label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="내용을 입력하세요"
-            rows={10}
-          />
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="file">첨부파일</label>
-          {existingImage && !file && (
-            <div className="existing-image">
-              <img
-                src={`https://front-mission.bigs.or.kr${existingImage}`}
-                alt="기존 이미지"
-              />
-            </div>
-          )}
-          <input
-            ref={fileInputRef}
-            id="file"
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0])}
-          />
-        </div>
-
-        <div className="form-actions">
-          <button type="button" className="btn btn-outline" onClick={() => navigate(-1)}>
-            취소
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? '저장 중...' : isEdit ? '수정' : '등록'}
-          </button>
-        </div>
-      </form>
-    </div>
+    <BoardForm
+      initialData={initialData || undefined}
+      categories={categories}
+      onSubmit={handleSubmit}
+      loading={loading}
+      isEdit={isEdit}
+    />
   );
 }

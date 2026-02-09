@@ -1,0 +1,61 @@
+import { type InputHTMLAttributes, forwardRef } from 'react';
+import styled from '@emotion/styled';
+import { colors } from '../../styles/constants';
+
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+const Wrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  width: 100%;
+`;
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: ${colors.text.primary};
+`;
+
+const StyledInput = styled.input<{ hasError?: boolean }>`
+  display: block;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid ${(props) => (props.hasError ? colors.danger.main : colors.border.input)};
+  padding: 0.625rem 0.75rem;
+  color: ${colors.text.primary};
+  background-color: ${colors.background.white};
+  font-size: 0.875rem;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: ${(props) => (props.hasError ? colors.danger.main : colors.primary.main)};
+    box-shadow: 0 0 0 2px ${(props) => (props.hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(3, 9, 91, 0.1)')};
+  }
+
+  &::placeholder {
+    color: ${colors.text.placeholder};
+  }
+`;
+
+const ErrorText = styled.span`
+  font-size: 0.75rem;
+  color: ${colors.danger.main};
+`;
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ label, error, className, ...props }, ref) => {
+    return (
+      <Wrapper className={className}>
+        {label && <Label htmlFor={props.id}>{label}</Label>}
+        <StyledInput ref={ref} hasError={!!error} {...props} />
+        {error && <ErrorText>{error}</ErrorText>}
+      </Wrapper>
+    );
+  }
+);
+Input.displayName = 'Input';
